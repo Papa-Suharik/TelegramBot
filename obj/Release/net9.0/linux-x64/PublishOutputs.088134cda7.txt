@@ -1,0 +1,3 @@
+C:\Users\Work\Desktop\PepchaBuild\publish\PepchaBuild.pdb
+C:\Users\Work\Desktop\PepchaBuild\publish\libe_sqlite3.so
+C:\Users\Work\Desktop\PepchaBuild\publish\PepchaBuild

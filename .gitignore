@@ -5,3 +5,5 @@
 *.sqlite3
 appsettings*.json
 .env
+
+publish/

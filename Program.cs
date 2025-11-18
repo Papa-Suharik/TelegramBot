@@ -18,7 +18,7 @@ CustomerAdder boban = new();
 boban.DataBaseInit();
 var token = Environment.GetEnvironmentVariable("TELEGRAM_TOKEN");
 using var cts = new CancellationTokenSource();
-var bot = new TelegramBotClient(token, cancellationToken: cts.Token);
+var bot = new TelegramBotClient(token!, cancellationToken: cts.Token);
 var me = await bot.GetMe();
 long channelId = -1002955744885;
 long[] admins = [308924853, 493034507];
@@ -28,9 +28,21 @@ bot.OnMessage += OnMessage;
 bot.OnUpdate += OnUpdate;
 
 
-Console.WriteLine($"@{me.Username} is running... Press Enter to terminate");
+Console.WriteLine($"@{me.Username} is running... Press Ctrl+C to terminate");
+
 var customers = boban.GetFirst1000Customers();
-Console.ReadLine();
+
+using var waitHandle = new ManualResetEventSlim(false);
+
+Console.CancelKeyPress += (sender, e) =>
+{
+    Console.WriteLine("Shutting down...");
+    e.Cancel = true;
+    waitHandle.Set();
+};
+
+// Ждем сигнала завершения
+waitHandle.Wait();
 cts.Cancel();
 
 async Task OnError(Exception exception, HandleErrorSource source)
@@ -149,8 +161,6 @@ async Task OnUpdate(Update update)
         {
             var newMember = update.ChatMember.NewChatMember.User;
             var chat = update.ChatMember.Chat;
-
-            Console.WriteLine("goooogaa123");
 
             if (!newMember.IsBot)
             {

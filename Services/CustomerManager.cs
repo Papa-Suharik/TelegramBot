@@ -9,9 +9,6 @@ using Telegram.Bot.Types.ReplyMarkups;
 public class CustomerAdder
 {
     private string connectionString = "Data Source=mydatabase.db";
-
-    private long ChannelId = -1002955744885;
-    private long[] admins = [308924853,493034507];
     public void DataBaseInit()
     {
         using (var connection = new SqliteConnection(connectionString))
@@ -139,10 +136,5 @@ public class CustomerAdder
     async Task SendToChannel(long channelId, string message, TelegramBotClient bot)
     {
         await bot.SendMessage(channelId, message);
-    }
-
-    public bool IsAdmin(long chatId)
-    {
-        return admins.Contains(chatId);
     }
 }

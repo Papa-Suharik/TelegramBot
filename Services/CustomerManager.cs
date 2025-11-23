@@ -7,9 +7,8 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
 public class CustomerAdder
-{
-    private string connectionString = "Data Source=mydatabase.db";
-    public void DataBaseInit()
+{   
+    public void DataBaseInit(string connectionString)
     {
         using (var connection = new SqliteConnection(connectionString))
         {
@@ -30,7 +29,7 @@ public class CustomerAdder
             Console.WriteLine("База данных инициализирована.");
         }
     }
-    public int CreateCustomer(string UserName, long ChatId)
+    public int CreateCustomer(string UserName, long ChatId, string connectionString)
     {
         using (var connection = new SqliteConnection(connectionString))
         {
@@ -45,7 +44,7 @@ public class CustomerAdder
             insertCommand.ExecuteNonQuery();
         }
 
-        var c = FindCustomerByChatId(ChatId);
+        var c = FindCustomerByChatId(ChatId, connectionString);
 
         if (c == null)
         {
@@ -55,7 +54,7 @@ public class CustomerAdder
         
         return c.UserAssignedNumber;
     }
-    public Customer? FindCustomerByChatId(long chatId)
+    public Customer? FindCustomerByChatId(long chatId, string connectionString)
     {
         using (var connection = new SqliteConnection(connectionString))
         {
@@ -73,10 +72,6 @@ public class CustomerAdder
                     string userNameT = reader.IsDBNull(1) ? "" : reader.GetString(1);
                     long chatIdT = reader.IsDBNull(2) ? 0L : reader.GetInt64(2);
                     DateTime CreatedTime = reader.GetDateTime(3);
-
-                    // long chatIdT = reader.GetInt32(2);
-                    // string userNameT = reader.GetString(1);
-                    // int assignedNumT = reader.GetInt32(0);
 
                     return new Customer(userNameT, chatId, assignedNumT, CreatedTime);
                 }
@@ -101,7 +96,7 @@ public class CustomerAdder
         await bot.SendMessage(groupChatId, wellcomeMessage, replyMarkup: keyboard);
     }
 
-    public List<Customer> GetFirst1000Customers()
+    public List<Customer> GetFirst1000Customers(string connectionString)
     {
         var customers = new List<Customer>();
 

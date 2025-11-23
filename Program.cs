@@ -11,17 +11,22 @@ using PEPCHABUILD.Models;
 using Microsoft.VisualBasic;
 using Telegram.Bot.Exceptions;
 using Microsoft.Extensions.Configuration;
+using PEPCHABUILD.MessageSender;
 
 
 
 CustomerAdder boban = new();
-boban.DataBaseInit();
+string connectionString = "Data Source=mydatabase.db";
+string connectionStringF = "Data Source=failedcust.db";
+boban.DataBaseInit(connectionString);
+boban.DataBaseInit(connectionStringF);
+
 var token = Environment.GetEnvironmentVariable("TELEGRAM_TOKEN");
 using var cts = new CancellationTokenSource();
 var bot = new TelegramBotClient(token!, cancellationToken: cts.Token);
 var me = await bot.GetMe();
 long channelId = -1002955744885;
-long[] admins = [12];
+long[] admins = [308924853];
 
 bot.OnError += OnError;
 bot.OnMessage += OnMessage;
@@ -30,7 +35,7 @@ bot.OnUpdate += OnUpdate;
 
 Console.WriteLine($"@{me.Username} is running... Press Ctrl+C to terminate");
 
-var customers = boban.GetFirst1000Customers();
+var customers = boban.GetFirst1000Customers(connectionString);
 
 using var waitHandle = new ManualResetEventSlim(false);
 
@@ -58,7 +63,7 @@ async Task OnMessage(Message msg, UpdateType type)
     string textMes = (msg.Text ?? string.Empty).Trim();
     long chatId = msg.Chat.Id;
     string userName = msg.From.Username ?? "";
-    var c = boban.FindCustomerByChatId(chatId);
+    var c = boban.FindCustomerByChatId(chatId, connectionString);
 
     if (msg.Chat.Type == ChatType.Private)
     {
@@ -76,47 +81,11 @@ async Task OnMessage(Message msg, UpdateType type)
                     }
                 case var s when s.StartsWith("/sendcatalog"):
                     {
-                        int sentCount = 0;
-                        int failCount = 0;
-                        string failedCustId = "";
-
-                        var customers = boban.GetFirst1000Customers();
+                        MessageSender sender = new();
+                        var customers = boban.GetFirst1000Customers(connectionString);
                         string textMess = "Example of link...";
 
-                        for (int i = 0; i < customers.Count; i++)
-                        {
-                            var cust = customers[i];
-
-                            try
-                            {
-                                await bot.SendMessage(cust.ChatId, textMess);
-                                sentCount++;
-
-                                if (i % 30 == 0 && i > 0)
-                                {
-                                    await Task.Delay(1000);
-                                }
-                                else
-                                {
-                                    await Task.Delay(150);
-                                }
-                            }
-                            catch (ApiRequestException ex) when (ex.ErrorCode == 429)
-                            {
-                                failedCustId += $"-{cust.ChatId}";
-                                await bot.SendMessage(308924853, "⏳ Превышен лимит, жду 10 секунд...");
-                                await Task.Delay(10000);
-                            }
-                            catch (Exception exception)
-                            {
-                                Console.WriteLine(exception.Message);
-                                failedCustId += $"-{cust.ChatId}";
-                                failCount++;
-                                await Task.Delay(100);
-                            }
-                        }
-
-                        await bot.SendMessage(308924853, $"Done! \nSuccsess sent: {sentCount}\nFailed sent: {failCount}\nList of Id Failed: {failedCustId}");
+                        await sender.SendMultiple(bot, boban, customers, textMess, connectionStringF);
 
                         break;
                     }
@@ -187,11 +156,11 @@ async Task OnUpdate(Update update)
             long chatId = query.From.Id;
             string? userName = "@" + query.From.Username;
             int num = 0;
-            var c = boban.FindCustomerByChatId(chatId);
+            var c = boban.FindCustomerByChatId(chatId, connectionString);
 
             if (c == null)
             {
-                num = boban.CreateCustomer(userName, chatId);
+                num = boban.CreateCustomer(userName, chatId, connectionString);
                 await bot.SendMessage(query.Message!.Chat, $"🎉 Готово! Ви успішно зареєструвалися в акції!\nВаш номерок - {num}🧾✨\nЯк тільки почнеться розсилка — я одразу надішлю вам магічний каталог з найкращими цінами на улюблені товари для рукоділля 🧶💖");
             }
             else

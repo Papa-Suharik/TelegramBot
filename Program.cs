@@ -84,9 +84,9 @@ async Task OnMessage(Message msg, UpdateType type)
                         MessageSender sender = new();
                         var customers = boban.GetFirst1000Customers(connectionString);
                         string textMess = "Example of link...";
-
-                        await sender.SendMultiple(bot, boban, customers, textMess, connectionStringF);
-
+                        
+                        _= Task.Run(async () => await sender.SendMultiple(bot, boban, customers, textMess, connectionStringF));
+                        
                         break;
                     }
             }

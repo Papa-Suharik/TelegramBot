@@ -96,7 +96,7 @@ public class CustomerAdder
         await bot.SendMessage(groupChatId, wellcomeMessage, replyMarkup: keyboard);
     }
 
-    public List<Customer> GetFirst1000Customers(string connectionString)
+    public List<Customer> GetCustomers(string connectionString)
     {
         var customers = new List<Customer>();
 
@@ -107,8 +107,7 @@ public class CustomerAdder
             command.CommandText = @"
                 SELECT ChatId, UserName, AssignedNumber, CreatedTime
                 FROM Customers
-                ORDER BY CreatedTime ASC
-                LIMIT 1000";
+                ORDER BY CreatedTime ASC";
             
             using (var reader = command.ExecuteReader())
             {

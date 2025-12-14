@@ -35,8 +35,6 @@ bot.OnUpdate += OnUpdate;
 
 Console.WriteLine($"@{me.Username} is running... Press Ctrl+C to terminate");
 
-var customers = boban.GetFirst1000Customers(connectionString);
-
 using var waitHandle = new ManualResetEventSlim(false);
 
 Console.CancelKeyPress += (sender, e) =>
@@ -64,6 +62,7 @@ async Task OnMessage(Message msg, UpdateType type)
     long chatId = msg.Chat.Id;
     string userName = msg.From.Username ?? "";
     var c = boban.FindCustomerByChatId(chatId, connectionString);
+    string textToSend = "";
 
     if (msg.Chat.Type == ChatType.Private)
     {
@@ -74,19 +73,20 @@ async Task OnMessage(Message msg, UpdateType type)
                 case var s when s.StartsWith("/sendchal"):
                     {
                         var button = new InlineKeyboardMarkup([[InlineKeyboardButton.WithUrl("Взяти участь!", "https://t.me/CandyYarn_Bot?start=group_invite")]]);
-                        await bot.SendMessage(channelId, "✨ Вітаю! Я — бот CandyYarn, і я допоможу вам взяти участь у нашій святковій акції 🧶\nНатисніть кнопку нижче — і отримайте свій чарівний номерок 🎫\nА коли настане час, я надішлю магічний каталог з найкращими цінами першій тисячі учасників ✨",
-                         replyMarkup: button);
+                        textToSend = "✨Привіт!\n👋Я — бот магазину Candy Yarn 🧶\nНатискайте кнопку нижче — і я буду надсилати вам новинки, акції, знижки та розпродажі для в’язання 💛";
+
+                        await bot.SendMessage(channelId, textToSend,replyMarkup: button);
 
                         break;
                     }
                 case var s when s.StartsWith("/sendcatalog"):
                     {
                         MessageSender sender = new();
-                        var customers = boban.GetFirst1000Customers(connectionString);
-                        string textMess = "Example of link...";
-                        
-                        _= Task.Run(async () => await sender.SendMultiple(bot, boban, customers, textMess, connectionStringF));
-                        
+                        var customers = boban.GetCustomers(connectionString);
+                        textToSend ="Усі знижки починають діяти -  28.11 на Чорну П’ятницю🔥\n\n👉Слідкуйте за всіма новинами у нашому Телеграм-каналі:\nhttps://t.me/+dmZPQ3u1k_hkZTdi";
+
+                        _ = Task.Run(async () => await sender.SendMultiple(bot, boban, customers, textToSend, connectionStringF));
+
                         break;
                     }
             }
@@ -99,13 +99,18 @@ async Task OnMessage(Message msg, UpdateType type)
                     {
                         if (c != null)
                         {
-                            await bot.SendMessage(msg.Chat, $"🎉 Ви вже берете участь у нашій акції!\nВаш номерок — {c.UserAssignedNumber}🧾\nКоли настане потрібний час — я надішлю вам магічний каталог з найкращими цінами ✨");
+                            textToSend = $"💛 Ви вже підписані на оновлення Candy Yarn 🧶\n Всі новини від Candy-Yarn будуть приходити вам першими 🧶";
+                            await bot.SendMessage(msg.Chat, textToSend);
 
                             return;
                         }
+
                         Console.WriteLine(msg.Chat);
-                        var keyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("🎫 Тиць!", "get_number")]]);
-                        await bot.SendMessage(msg.Chat, "🧶 Вітаємо у чарівному світі CandyYarn!\nНатисніть кнопку нижче, щоб отримати свій щасливий номерок 🎫✨", replyMarkup: keyboard);
+
+                        var keyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("🧶 Підписатися", "get_number")]]);
+                        textToSend = "Привіт! 👋\n\nЯ — бот магазину Candy-Yarn🧶\nНатискайте кнопку нижче, і ви першими отримуватимете всі новини та анонси нашого магазину 💛✨";
+
+                        await bot.SendMessage(msg.Chat, textToSend, replyMarkup: keyboard);
 
                         break;
                     }
@@ -113,11 +118,15 @@ async Task OnMessage(Message msg, UpdateType type)
                     {
                         if (c != null)
                         {
-                            await bot.SendMessage(msg.Chat, $"🎉 Ви вже берете участь у нашій акції!\nВаш номерок — {c.UserAssignedNumber}🧾\nКоли настане потрібний час — я надішлю вам магічний каталог з найкращими цінами ✨");
+                            textToSend = $"💛 Ви вже з нами!\nВсі новини від Candy-Yarn будуть приходити вам першими 🧶";
+
+                            await bot.SendMessage(msg.Chat, textToSend);
                             return;
                         }
-                        var keyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("🎫 Тиць!", "get_number")]]);
-                        await bot.SendMessage(msg.Chat, $"Натисніть кнопку нижче, щоб отримати свій щасливий номерок 🎫✨", replyMarkup: keyboard);
+
+                        var keyboard = new InlineKeyboardMarkup([[InlineKeyboardButton.WithCallbackData("🧶 Підписатися!", "get_number")]]);
+                        textToSend = $"Натискайте кнопку нижче, щоб отримувати новинки, акції, знижки та розпродажі від Candy Yarn 🧶";
+                        await bot.SendMessage(msg.Chat, textToSend, replyMarkup: keyboard);
 
                         break;
                     }
@@ -128,6 +137,8 @@ async Task OnMessage(Message msg, UpdateType type)
 
 async Task OnUpdate(Update update)
 {
+    string textToSend = "";
+
     if (update.Type == UpdateType.ChatMember)
     {
         if (update.ChatMember?.NewChatMember.Status == ChatMemberStatus.Member && update.ChatMember.Chat.Id != channelId)
@@ -161,11 +172,13 @@ async Task OnUpdate(Update update)
             if (c == null)
             {
                 num = boban.CreateCustomer(userName, chatId, connectionString);
-                await bot.SendMessage(query.Message!.Chat, $"🎉 Готово! Ви успішно зареєструвалися в акції!\nВаш номерок - {num}🧾✨\nЯк тільки почнеться розсилка — я одразу надішлю вам магічний каталог з найкращими цінами на улюблені товари для рукоділля 🧶💖");
+                textToSend = $"🎉 Готово! Ви успішно підписалися на новини від Candy-Yarn!\nЯк тільки будуть цікаві новини - ви першими про них дізнаєтесь!🧶💖";
+                await bot.SendMessage(query.Message!.Chat, textToSend);
             }
             else
             {
-                await bot.SendMessage(query.Message!.Chat, $"🧵 Ви вже берете участь у нашій акції!\nВаш номерок — {c.UserAssignedNumber}🧾\nЯ повідомлю вам, коли настане час отримати магічний каталог ✨");
+                textToSend = $"💛 Ви вже підписані на оновлення Candy Yarn 🧶\n Всі новини від Candy-Yarn будуть приходити вам першими 🧶";
+                await bot.SendMessage(query.Message!.Chat, textToSend);
             }
         }
     }

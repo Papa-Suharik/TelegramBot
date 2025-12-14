@@ -27,9 +27,20 @@ public class MessageSender
             bool failed = false;
             int random = ran.Next(150, 801);
 
+            using var stream1 = File.OpenRead("images/1.jpg");
+            using var stream2 = File.OpenRead("images/2.jpg");
+
+            var media = new IAlbumInputMedia[]
+            {
+                new InputMediaPhoto(new InputFileStream(stream1, "1.jpg")),
+                new InputMediaPhoto(new InputFileStream(stream2, "1.jpg"))
+            };
+
             try
             {
-                await bot.SendMessage(cust.ChatId, textMess);
+                // await bot.SendMessage(cust.ChatId, textMess);
+                await bot.SendMediaGroup(chatId, media);
+                await bot.SendMessage(chatId, textMess);
                 sentCount++;
 
                 if (i % 150 == 0 && i > 0)
@@ -45,7 +56,7 @@ public class MessageSender
             {
                 failed = true;
                 failedCount++;
-             
+
                 int? retryAfter = ex.Parameters?.RetryAfter;
 
                 if (retryAfter.HasValue)
@@ -54,7 +65,7 @@ public class MessageSender
                 }
                 else
                 {
-                    if(ex429 >= 1 && del != maxdel)
+                    if (ex429 >= 1 && del != maxdel)
                     {
                         del += 5000;
                     }
